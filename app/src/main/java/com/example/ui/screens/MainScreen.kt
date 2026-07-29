@@ -16,6 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import com.example.ui.components.BookingDialog
 import com.example.ui.components.CrisisAlertDialog
 import com.example.ui.components.DigitalResidencyCardDialog
@@ -24,6 +27,7 @@ import com.example.ui.components.PaymentDialog
 import com.example.ui.components.PostNoticeDialog
 import com.example.ui.components.PreAuthorizeVisitorDialog
 import com.example.ui.components.ProfilePhotoPickerDialog
+import com.example.ui.components.SplashScreen
 import com.example.ui.components.SubmitLifestyleRequestDialog
 import com.example.ui.components.VedvoraBottomBar
 import com.example.ui.components.VedvoraTab
@@ -36,6 +40,7 @@ fun MainScreen(
     onSignOut: () -> Unit
 ) {
     var currentTab by remember { mutableStateOf<String>(VedvoraTab.Home.route) }
+    var showSplashScreen by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val userToastMessage by viewModel.userToastMessage.collectAsState()
@@ -203,6 +208,16 @@ fun MainScreen(
             PostNoticeDialog(
                 viewModel = viewModel,
                 onDismiss = { viewModel.isPostNoticeDialogOpen.value = false }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = showSplashScreen,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            SplashScreen(
+                onSplashFinished = { showSplashScreen = false }
             )
         }
     }

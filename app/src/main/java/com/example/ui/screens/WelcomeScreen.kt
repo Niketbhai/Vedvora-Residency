@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DoorFront
@@ -36,6 +37,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -73,6 +76,22 @@ fun WelcomeScreen(
     var nameInput by remember { mutableStateOf("Arjun Sharma") }
     var buildingInput by remember { mutableStateOf("Tower A") }
     var flatInput by remember { mutableStateOf("Penthouse 1204") }
+
+    var buildingExpanded by remember { mutableStateOf(false) }
+    var flatExpanded by remember { mutableStateOf(false) }
+
+    val buildingList = listOf("Tower A", "Tower B", "Tower C", "Vedvora Penthouse Block", "Royal Villa Suites")
+    val flatList = listOf(
+        "Penthouse 1204",
+        "Flat 101 (1st Floor)",
+        "Flat 202 (2nd Floor)",
+        "Flat 504 (5th Floor)",
+        "Flat 802 (8th Floor)",
+        "Flat 1105 (11th Floor)",
+        "Penthouse 1201 (12th Floor)",
+        "Suite 1502 (15th Floor)",
+        "Villa 004 (Ground Level)"
+    )
 
     LaunchedEffect(Unit) {
         isVisible = true
@@ -261,53 +280,147 @@ fun WelcomeScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Building / Tower No Input
-                        OutlinedTextField(
-                            value = buildingInput,
-                            onValueChange = { buildingInput = it },
-                            label = { Text("Building / Tower No.", fontSize = 12.sp) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Apartment,
-                                    contentDescription = null,
-                                    tint = VedvoraGold
+                        // Building / Tower No Dropdown Selection
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = buildingInput,
+                                onValueChange = { },
+                                readOnly = true,
+                                label = { Text("Building / Tower (Select Option)", fontSize = 12.sp) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Apartment,
+                                        contentDescription = null,
+                                        tint = VedvoraGold
+                                    )
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Dropdown",
+                                        tint = VedvoraGold
+                                    )
+                                },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("building_dropdown_field"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = VedvoraGold,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                                 )
-                            },
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("building_input_field"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = VedvoraGold,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
-                        )
+
+                            // Click interceptor overlay
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { buildingExpanded = true }
+                            )
+
+                            DropdownMenu(
+                                expanded = buildingExpanded,
+                                onDismissRequest = { buildingExpanded = false },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                buildingList.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = option,
+                                                fontWeight = if (option == buildingInput) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (option == buildingInput) VedvoraGold else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Apartment,
+                                                contentDescription = null,
+                                                tint = if (option == buildingInput) VedvoraGold else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        },
+                                        onClick = {
+                                            buildingInput = option
+                                            buildingExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Flat / Room No Input
-                        OutlinedTextField(
-                            value = flatInput,
-                            onValueChange = { flatInput = it },
-                            label = { Text("Flat / Room / Suite No.", fontSize = 12.sp) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.DoorFront,
-                                    contentDescription = null,
-                                    tint = VedvoraGold
+                        // Flat / Room No Dropdown Selection
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = flatInput,
+                                onValueChange = { },
+                                readOnly = true,
+                                label = { Text("Flat / Suite No. (Select Option)", fontSize = 12.sp) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.DoorFront,
+                                        contentDescription = null,
+                                        tint = VedvoraGold
+                                    )
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Dropdown",
+                                        tint = VedvoraGold
+                                    )
+                                },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("flat_dropdown_field"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = VedvoraGold,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                                 )
-                            },
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("flat_input_field"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = VedvoraGold,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
-                        )
+
+                            // Click interceptor overlay
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { flatExpanded = true }
+                            )
+
+                            DropdownMenu(
+                                expanded = flatExpanded,
+                                onDismissRequest = { flatExpanded = false },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                flatList.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = option,
+                                                fontWeight = if (option == flatInput) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (option == flatInput) VedvoraGold else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.DoorFront,
+                                                contentDescription = null,
+                                                tint = if (option == flatInput) VedvoraGold else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        },
+                                        onClick = {
+                                            flatInput = option
+                                            flatExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 

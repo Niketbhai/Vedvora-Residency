@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RoomService
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -617,6 +618,10 @@ fun PaymentDialog(
     var selectedMethod by remember { mutableStateOf("UPI_GPAY") } // "UPI_GPAY", "UPI_PHONEPE", "CARD"
     var upiIdInput by remember { mutableStateOf("arjun@okaxis") }
 
+    var secondsLeft by remember { mutableStateOf(5) }
+    var stageText by remember { mutableStateOf("1/5 Securing NPCI Banking Channel...") }
+    var stageProgress by remember { mutableStateOf(0.20f) }
+
     val formattedAmount = String.format("%,.2f", amount)
     val transactionRefId = remember { "UPI/2026/0729/${(100000..999999).random()}" }
 
@@ -850,7 +855,31 @@ fun PaymentDialog(
                         onClick = {
                             paymentState = "PROCESSING"
                             coroutineScope.launch {
-                                delay(1400)
+                                secondsLeft = 5
+                                stageText = "1/5 Securing NPCI Banking Channel..."
+                                stageProgress = 0.20f
+                                delay(1000)
+
+                                secondsLeft = 4
+                                stageText = "2/5 Authenticating UPI Pin & Gateway..."
+                                stageProgress = 0.40f
+                                delay(1000)
+
+                                secondsLeft = 3
+                                stageText = "3/5 Verifying Dues with Vedvora Ledger..."
+                                stageProgress = 0.60f
+                                delay(1000)
+
+                                secondsLeft = 2
+                                stageText = "4/5 Transferring ₹$formattedAmount..."
+                                stageProgress = 0.80f
+                                delay(1000)
+
+                                secondsLeft = 1
+                                stageText = "5/5 Finalizing Payment Receipt & Invoice..."
+                                stageProgress = 1.00f
+                                delay(1000)
+
                                 paymentState = "SUCCESS"
                                 onConfirmPayment()
                             }
@@ -866,25 +895,117 @@ fun PaymentDialog(
                     }
 
                 } else if (paymentState == "PROCESSING") {
-                    Spacer(modifier = Modifier.height(30.dp))
-                    CircularProgressIndicator(
-                        color = VedvoraGold,
-                        strokeWidth = 4.dp,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        text = "Connecting to UPI Gateway...",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Authenticating ₹$formattedAmount transfer with bank",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(30.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
+                            .testTag("upi_payment_processing_view")
+                    ) {
+                        Text(
+                            text = "PROCESSING UPI PAYMENT",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VedvoraGold,
+                            letterSpacing = 1.2.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Circular Timer Countdown Ring
+                        Box(
+                            modifier = Modifier.size(110.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                progress = { stageProgress },
+                                color = VedvoraGold,
+                                strokeWidth = 6.dp,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "0${secondsLeft}s",
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "REMAINING",
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = VedvoraGold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            text = "Transferring ₹$formattedAmount",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = stageText,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // 5 Step Indicator Dots
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val totalSteps = 5
+                            val currentActiveStep = 6 - secondsLeft
+                            for (step in 1..totalSteps) {
+                                val isActive = step <= currentActiveStep
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = if (isActive) 22.dp else 8.dp, height = 8.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isActive) VedvoraGold else MaterialTheme.colorScheme.surfaceVariant)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Encrypted Security badge
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = "Shield",
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "256-Bit Encrypted • NPCI Verified UPI",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
 
                 } else if (paymentState == "SUCCESS") {
                     // UPI Successful Screen / Pop-up
