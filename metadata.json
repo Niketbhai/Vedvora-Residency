@@ -1,0 +1,6 @@
+{
+  "name": "Vedvora Residency",
+  "description": "Luxury Residency & Lifestyle Concierge Management",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
