@@ -22,7 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Weekend
@@ -44,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,13 +58,17 @@ import com.example.ui.theme.VedvoraGold
 import com.example.ui.theme.VedvoraPrimary
 import com.example.ui.theme.VedvoraPrimaryContainer
 import com.example.ui.theme.VedvoraSecondary
+import com.example.util.PdfGenerator
 import com.example.viewmodel.VedvoraViewModel
 
 @Composable
 fun BillingScreen(
     viewModel: VedvoraViewModel
 ) {
+    val context = LocalContext.current
     val invoices by viewModel.invoices.collectAsState()
+    val residentName by viewModel.residentName.collectAsState()
+    val residentUnit by viewModel.residentUnit.collectAsState()
 
     val pendingTotal = invoices.filter { it.status == "Pending" }.sumOf { it.amount }
     val displayAmount = if (pendingTotal > 0) pendingTotal else 0.0
@@ -170,23 +178,110 @@ fun BillingScreen(
                             }
 
                             OutlinedButton(
-                                onClick = { viewModel.showToast("Displaying Full Payment History") },
+                                onClick = {
+                                    val pdf = PdfGenerator.generatePaymentHistoryStatementPdf(
+                                        context = context,
+                                        residentName = residentName,
+                                        residentUnit = residentUnit,
+                                        invoices = invoices
+                                    )
+                                    if (pdf != null) {
+                                        viewModel.showToast("Statement PDF Downloaded!")
+                                        PdfGenerator.openOrSharePdf(context, pdf)
+                                    } else {
+                                        viewModel.showToast("Failed to generate PDF statement.")
+                                    }
+                                },
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
+                                    .weight(1.1f)
+                                    .height(48.dp)
+                                    .testTag("download_statement_pdf_btn"),
                                 shape = RoundedCornerShape(12.dp),
                                 border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.horizontalGradient(listOf(VedvoraGold, VedvoraGold)))
                             ) {
-                                Text("View History", fontWeight = FontWeight.Bold, color = VedvoraGold)
+                                Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = VedvoraGold, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("PDF Statement", fontWeight = FontWeight.Bold, color = VedvoraGold, fontSize = 13.sp)
                             }
                         }
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Dedicated PDF Download Card Feature Banner
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = VedvoraGold.copy(alpha = 0.12f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val pdf = PdfGenerator.generatePaymentHistoryStatementPdf(
+                            context = context,
+                            residentName = residentName,
+                            residentUnit = residentUnit,
+                            invoices = invoices
+                        )
+                        if (pdf != null) {
+                            viewModel.showToast("Statement PDF generated & opened!")
+                            PdfGenerator.openOrSharePdf(context, pdf)
+                        }
+                    }
+                    .border(1.dp, VedvoraGold.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(VedvoraGold),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = "PDF Icon",
+                                tint = VedvoraPrimary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column {
+                            Text(
+                                text = "Download Payment Statement (PDF)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Get complete tax invoice & ledger statement in PDF format",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = "Download",
+                        tint = VedvoraGold,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Recent Invoices / Services
+            // Recent Invoices / Services Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -198,13 +293,34 @@ fun BillingScreen(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = "View All",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = VedvoraGold,
-                    modifier = Modifier.clickable { viewModel.showToast("Showing All Invoices") }
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val pdf = PdfGenerator.generatePaymentHistoryStatementPdf(
+                            context = context,
+                            residentName = residentName,
+                            residentUnit = residentUnit,
+                            invoices = invoices
+                        )
+                        if (pdf != null) {
+                            PdfGenerator.openOrSharePdf(context, pdf)
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ReceiptLong,
+                        contentDescription = null,
+                        tint = VedvoraGold,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Download All PDF",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = VedvoraGold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -215,7 +331,7 @@ fun BillingScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    invoices.forEach { invoice ->
+                    invoices.forEachIndexed { index, invoice ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -223,7 +339,10 @@ fun BillingScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .size(44.dp)
@@ -258,27 +377,64 @@ fun BillingScreen(
                                 }
                             }
 
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("₹${String.format("%,.2f", invoice.amount)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(modifier = Modifier.height(2.dp))
-                                if (invoice.status == "Paid") {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .background(VedvoraSecondary.copy(alpha = 0.15f))
-                                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("Paid", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VedvoraSecondary)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("₹${String.format("%,.2f", invoice.amount)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    if (invoice.status == "Paid") {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(CircleShape)
+                                                .background(VedvoraSecondary.copy(alpha = 0.15f))
+                                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("Paid", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VedvoraSecondary)
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(CircleShape)
+                                                .background(VedvoraError.copy(alpha = 0.15f))
+                                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("Pending", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VedvoraError)
+                                        }
                                     }
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .background(VedvoraError.copy(alpha = 0.15f))
-                                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("Pending", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VedvoraError)
-                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                // Direct PDF receipt download button for each invoice
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable {
+                                            val pdf = PdfGenerator.generateAndSavePaymentReceiptPdf(
+                                                context = context,
+                                                residentName = residentName,
+                                                residentUnit = residentUnit,
+                                                amountPaid = invoice.amount,
+                                                transactionId = "UPI/2026/0729/${(100000..999999).random()}",
+                                                paymentMode = "UPI (Vedvora Pay)",
+                                                purpose = invoice.title
+                                            )
+                                            if (pdf != null) {
+                                                viewModel.showToast("Receipt PDF downloaded for ${invoice.title}!")
+                                                PdfGenerator.openOrSharePdf(context, pdf)
+                                            }
+                                        }
+                                        .padding(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PictureAsPdf,
+                                        contentDescription = "Download Receipt PDF",
+                                        tint = VedvoraGold,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
                         }
@@ -393,3 +549,4 @@ fun BillingScreen(
         }
     }
 }
+
