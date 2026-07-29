@@ -44,6 +44,15 @@ interface VedvoraDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBooking(booking: BookingEntity): Long
 
+    @Query("DELETE FROM bookings WHERE id = :id")
+    suspend fun deleteBooking(id: Long)
+
+    @Query("UPDATE bookings SET startTimeStr = :newTime, subtitle = :newSubtitle WHERE id = :id")
+    suspend fun rescheduleBooking(id: Long, newTime: String, newSubtitle: String)
+
+    @Query("UPDATE bookings SET status = :status WHERE id = :id")
+    suspend fun updateBookingStatus(id: Long, status: String)
+
     @Query("SELECT * FROM notices ORDER BY id ASC")
     fun getNotices(): Flow<List<NoticeEntity>>
 

@@ -19,7 +19,7 @@ import com.example.data.entity.VisitorEntity
         NoticeEntity::class,
         ActivityLogEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

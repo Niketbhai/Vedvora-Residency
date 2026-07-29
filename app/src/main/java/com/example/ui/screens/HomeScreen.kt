@@ -175,7 +175,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { viewModel.openBookingFor("VIP Concierge") },
+                        onClick = { viewModel.isSubmitLifestyleRequestOpen.value = true },
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp)

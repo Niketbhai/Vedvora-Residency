@@ -184,7 +184,7 @@ fun VedvoraTopBar(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(42.dp)
-                                .background(MaterialTheme.colorScheme.primary),
+                                .background(MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(

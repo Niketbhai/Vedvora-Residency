@@ -36,8 +36,25 @@ class VedvoraViewModel(application: Application) : AndroidViewModel(application)
 
     // User session
     val residentName = MutableStateFlow("Johnathan Doe")
-    val residentUnit = MutableStateFlow("Emerald Heights • Tower C, Penthouse 1204")
+    val residentBuilding = MutableStateFlow("Tower C")
+    val residentFlat = MutableStateFlow("Penthouse 1204")
+    val residentUnit = MutableStateFlow("Tower C • Flat Penthouse 1204")
     val residentStatus = MutableStateFlow("Platinum Member")
+
+    // Lifestyle Request Dialog state
+    val isSubmitLifestyleRequestOpen = MutableStateFlow(false)
+    val selectedRescheduleBooking = MutableStateFlow<BookingEntity?>(null)
+
+    fun updateResidentDetails(name: String, building: String, flat: String) {
+        val finalName = name.ifBlank { "Johnathan Doe" }.trim()
+        val finalBuilding = building.ifBlank { "Tower C" }.trim()
+        val finalFlat = flat.ifBlank { "Penthouse 1204" }.trim()
+
+        residentName.value = finalName
+        residentBuilding.value = finalBuilding
+        residentFlat.value = finalFlat
+        residentUnit.value = "$finalBuilding • Flat $finalFlat"
+    }
 
     // Snackbar / Toast feedback
     val userToastMessage = MutableStateFlow<String?>(null)
@@ -155,6 +172,44 @@ class VedvoraViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             isCrisisAlertOpen.value = false
             showToast("Crisis Alert Dispatched to Vedvora Security & Concierge Desk!")
+        }
+    }
+
+    fun submitLifestyleRequest(
+        serviceTitle: String,
+        category: String,
+        notes: String,
+        dateStr: String,
+        timeStr: String
+    ) {
+        viewModelScope.launch {
+            repository.addLifestyleRequest(serviceTitle, category, notes, dateStr, timeStr)
+            isSubmitLifestyleRequestOpen.value = false
+            showToast("Lifestyle request '$serviceTitle' dispatched to Concierge Desk!")
+        }
+    }
+
+    fun cancelBooking(bookingId: Long, serviceName: String) {
+        viewModelScope.launch {
+            repository.cancelBooking(bookingId, serviceName)
+            showToast("Request for '$serviceName' cancelled.")
+        }
+    }
+
+    fun rescheduleBooking(bookingId: Long, serviceName: String, dateStr: String, timeStr: String) {
+        viewModelScope.launch {
+            repository.rescheduleBooking(bookingId, serviceName, dateStr, timeStr)
+            selectedRescheduleBooking.value = null
+            showToast("'$serviceName' rescheduled for $dateStr at $timeStr.")
+        }
+    }
+
+    fun approveGateScan(passType: String, passCode: String, isOriginal: Boolean) {
+        viewModelScope.launch {
+            repository.recordGatePassScan(passType, passCode)
+            isGatePassDialogOpen.value = false
+            val passCategoryLabel = if (isOriginal) "Original Resident Master Pass" else "Duplicate Visitor Pass"
+            showToast("Gate Access Approved ($passCategoryLabel #$passCode) • Security Officer Verified • Apartment Entry Granted!")
         }
     }
 

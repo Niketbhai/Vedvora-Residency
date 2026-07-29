@@ -35,7 +35,9 @@ data class BookingEntity(
     val subtitle: String,
     val startTimeStr: String,
     val status: String,
-    val attendants: String = "1 Ready"
+    val attendants: String = "1 Ready",
+    val category: String = "Lifestyle",
+    val specialNotes: String = ""
 )
 
 @Entity(tableName = "notices")

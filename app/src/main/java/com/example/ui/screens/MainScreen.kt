@@ -21,6 +21,7 @@ import com.example.ui.components.CrisisAlertDialog
 import com.example.ui.components.GatePassDialog
 import com.example.ui.components.PaymentDialog
 import com.example.ui.components.PreAuthorizeVisitorDialog
+import com.example.ui.components.SubmitLifestyleRequestDialog
 import com.example.ui.components.VedvoraBottomBar
 import com.example.ui.components.VedvoraTab
 import com.example.ui.components.VedvoraTopBar
@@ -41,6 +42,8 @@ fun MainScreen(
     val isBookingOpen by viewModel.isBookingDialogOpen.collectAsState()
     val selectedService by viewModel.selectedBookingService.collectAsState()
     val isCrisisAlertOpen by viewModel.isCrisisAlertOpen.collectAsState()
+    val isSubmitLifestyleRequestOpen by viewModel.isSubmitLifestyleRequestOpen.collectAsState()
+    val residentUnit by viewModel.residentUnit.collectAsState()
 
     LaunchedEffect(userToastMessage) {
         userToastMessage?.let { msg ->
@@ -78,10 +81,13 @@ fun MainScreen(
                 VedvoraTab.Home.route -> {
                     HomeScreen(
                         viewModel = viewModel,
-                        onNavigateToVisitors = { currentTab = VedvoraTab.Guests.route },
+                        onNavigateToVisitors = { currentTab = VedvoraTab.VIP.route },
                         onNavigateToBilling = { currentTab = VedvoraTab.Billing.route },
                         onNavigateToAmenities = { currentTab = VedvoraTab.Booking.route }
                     )
+                }
+                VedvoraTab.Concierge.route -> {
+                    ConciergeDashboardScreen(viewModel = viewModel)
                 }
                 VedvoraTab.VIP.route -> {
                     VisitorsScreen(viewModel = viewModel)
@@ -115,10 +121,13 @@ fun MainScreen(
         // Active Dialogs
         if (isGatePassOpen) {
             GatePassDialog(
+                residentUnit = residentUnit,
                 onDismiss = { viewModel.isGatePassDialogOpen.value = false },
                 onShare = {
-                    viewModel.isGatePassDialogOpen.value = false
                     viewModel.showToast("Digital Gate Pass shared to clipboard")
+                },
+                onApproveGateScan = { passType, passCode, isOriginal ->
+                    viewModel.approveGateScan(passType, passCode, isOriginal)
                 }
             )
         }
@@ -155,6 +164,15 @@ fun MainScreen(
                 onDismiss = { viewModel.isCrisisAlertOpen.value = false },
                 onDispatch = { notes ->
                     viewModel.triggerCrisisAlert(notes)
+                }
+            )
+        }
+
+        if (isSubmitLifestyleRequestOpen) {
+            SubmitLifestyleRequestDialog(
+                onDismiss = { viewModel.isSubmitLifestyleRequestOpen.value = false },
+                onSubmit = { title, category, notes, date, time ->
+                    viewModel.submitLifestyleRequest(title, category, notes, date, time)
                 }
             )
         }

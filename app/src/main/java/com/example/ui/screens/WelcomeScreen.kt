@@ -25,9 +25,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DoorFront
 import androidx.compose.material.icons.filled.LocationCity
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RoomService
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -35,6 +38,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,10 +66,13 @@ import com.example.ui.theme.VedvoraPrimaryContainer
 
 @Composable
 fun WelcomeScreen(
-    onEnterPortal: () -> Unit,
+    onEnterPortalWithDetails: (name: String, building: String, flat: String) -> Unit,
     onLoginClick: () -> Unit
 ) {
     var isVisible by remember { mutableStateOf(false) }
+    var nameInput by remember { mutableStateOf("Johnathan Doe") }
+    var buildingInput by remember { mutableStateOf("Tower C") }
+    var flatInput by remember { mutableStateOf("Penthouse 1204") }
 
     LaunchedEffect(Unit) {
         isVisible = true
@@ -218,7 +226,7 @@ fun WelcomeScreen(
                         )
 
                         Text(
-                            text = "Experience seamless integration of luxury and technology. From 24/7 Member Services to bespoke visitor hospitality, every detail is managed with precision.",
+                            text = "Please verify your residency credentials to enter your private dashboard.",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -226,11 +234,88 @@ fun WelcomeScreen(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
 
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Resident Name Input
+                        OutlinedTextField(
+                            value = nameInput,
+                            onValueChange = { nameInput = it },
+                            label = { Text("Full Name", fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = VedvoraGold
+                                )
+                            },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("name_input_field"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VedvoraGold,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Building / Tower No Input
+                        OutlinedTextField(
+                            value = buildingInput,
+                            onValueChange = { buildingInput = it },
+                            label = { Text("Building / Tower No.", fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Apartment,
+                                    contentDescription = null,
+                                    tint = VedvoraGold
+                                )
+                            },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("building_input_field"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VedvoraGold,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Flat / Room No Input
+                        OutlinedTextField(
+                            value = flatInput,
+                            onValueChange = { flatInput = it },
+                            label = { Text("Flat / Room / Suite No.", fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.DoorFront,
+                                    contentDescription = null,
+                                    tint = VedvoraGold
+                                )
+                            },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("flat_input_field"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VedvoraGold,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            )
+                        )
+
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // Primary Action Button
                         Button(
-                            onClick = onEnterPortal,
+                            onClick = {
+                                onEnterPortalWithDetails(nameInput, buildingInput, flatInput)
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)

@@ -110,11 +110,46 @@ class VedvoraRepository(private val dao: VedvoraDao) {
         if (bookings.first().isEmpty()) {
             dao.insertBooking(
                 BookingEntity(
-                    serviceName = "Private Cinema",
-                    subtitle = "Your booking for 'Inception' starts at 8:00 PM tonight.",
+                    serviceName = "Deep Housekeeping & Sanitize",
+                    subtitle = "Notes: Use eco-friendly organic supplies for Master Suite",
+                    startTimeStr = "Tomorrow at 10:00 AM",
+                    status = "Confirmed",
+                    attendants = "2 Staff Assigned",
+                    category = "Cleaning",
+                    specialNotes = "Use eco-friendly organic supplies for Master Suite"
+                )
+            )
+            dao.insertBooking(
+                BookingEntity(
+                    serviceName = "Air Conditioner HVAC Servicing",
+                    subtitle = "Notes: Check cooling unit in Living Area & Filter Clean",
+                    startTimeStr = "Today at 03:00 PM",
+                    status = "In Progress",
+                    attendants = "Senior Tech Kevin M.",
+                    category = "Maintenance",
+                    specialNotes = "Check cooling unit in Living Area & Filter Clean"
+                )
+            )
+            dao.insertBooking(
+                BookingEntity(
+                    serviceName = "Private Chef Rooftop Dining",
+                    subtitle = "Notes: 4-Course French Cuisine Menu for 4 Guests",
+                    startTimeStr = "Oct 30 at 07:30 PM",
+                    status = "Pending Concierge",
+                    attendants = "Chef Pierre Laurent",
+                    category = "Dining",
+                    specialNotes = "4-Course French Cuisine Menu for 4 Guests"
+                )
+            )
+            dao.insertBooking(
+                BookingEntity(
+                    serviceName = "Private Cinema Screening",
+                    subtitle = "Notes: Reservation for 'Inception' (4K Dolby Atmos)",
                     startTimeStr = "8:00 PM Tonight",
-                    status = "Priority Access",
-                    attendants = "2 Ready"
+                    status = "Confirmed",
+                    attendants = "2 Ready",
+                    category = "Amenity",
+                    specialNotes = "Reservation for 'Inception' (4K Dolby Atmos)"
                 )
             )
         }
@@ -207,7 +242,8 @@ class VedvoraRepository(private val dao: VedvoraDao) {
                 subtitle = subtitle,
                 startTimeStr = timeStr,
                 status = "Confirmed",
-                attendants = "Confirmed"
+                attendants = "Confirmed",
+                category = "Amenity"
             )
         )
         dao.insertActivityLog(
@@ -216,6 +252,73 @@ class VedvoraRepository(private val dao: VedvoraDao) {
                 referenceCode = "Booking #${(100..999).random()}",
                 timeAgoStr = "Just Now",
                 iconType = "service"
+            )
+        )
+    }
+
+    suspend fun addLifestyleRequest(
+        serviceName: String,
+        category: String,
+        specialNotes: String,
+        dateStr: String,
+        timeStr: String
+    ) {
+        val timeSlot = "$dateStr at $timeStr"
+        val subtitleStr = if (specialNotes.isNotBlank()) "Notes: $specialNotes" else "Scheduled via Concierge Desk"
+        dao.insertBooking(
+            BookingEntity(
+                serviceName = serviceName,
+                subtitle = subtitleStr,
+                startTimeStr = timeSlot,
+                status = "Pending Concierge",
+                attendants = "Concierge Desk",
+                category = category,
+                specialNotes = specialNotes
+            )
+        )
+        dao.insertActivityLog(
+            ActivityLogEntity(
+                title = "Request Submitted: $serviceName",
+                referenceCode = "Req #${(1000..9999).random()}",
+                timeAgoStr = "Just Now",
+                iconType = "service"
+            )
+        )
+    }
+
+    suspend fun cancelBooking(id: Long, serviceName: String) {
+        dao.deleteBooking(id)
+        dao.insertActivityLog(
+            ActivityLogEntity(
+                title = "Cancelled Request: $serviceName",
+                referenceCode = "Ref #${(1000..9999).random()}",
+                timeAgoStr = "Just Now",
+                iconType = "service"
+            )
+        )
+    }
+
+    suspend fun rescheduleBooking(id: Long, serviceName: String, newDateStr: String, newTimeStr: String) {
+        val newTimeSlot = "$newDateStr at $newTimeStr"
+        val newSubtitle = "Rescheduled for $newTimeSlot"
+        dao.rescheduleBooking(id, newTimeSlot, newSubtitle)
+        dao.insertActivityLog(
+            ActivityLogEntity(
+                title = "Rescheduled: $serviceName",
+                referenceCode = "Time: $newTimeSlot",
+                timeAgoStr = "Just Now",
+                iconType = "service"
+            )
+        )
+    }
+
+    suspend fun recordGatePassScan(passType: String, code: String) {
+        dao.insertActivityLog(
+            ActivityLogEntity(
+                title = "Gate Scan Verified ($passType)",
+                referenceCode = "Code: $code • Security Approved",
+                timeAgoStr = "Just Now",
+                iconType = "guest"
             )
         )
     }

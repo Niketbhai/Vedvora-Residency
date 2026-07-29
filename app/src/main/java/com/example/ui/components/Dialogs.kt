@@ -66,8 +66,16 @@ import com.example.ui.theme.VedvoraPrimary
 fun GatePassDialog(
     residentUnit: String = "Tower C, Penthouse 1204",
     onDismiss: () -> Unit,
-    onShare: () -> Unit
+    onShare: () -> Unit,
+    onApproveGateScan: (passType: String, passCode: String, isOriginal: Boolean) -> Unit = { _, _, _ -> }
 ) {
+    var isOriginalPass by remember { mutableStateOf(true) }
+    var isScanning by remember { mutableStateOf(false) }
+    var isApprovedByGuard by remember { mutableStateOf(false) }
+
+    val passCode = if (isOriginalPass) "VEDV-ORIG-8820-2026" else "VEDV-DUP-9941-2026"
+    val passTitle = if (isOriginalPass) "ORIGINAL MASTER RESIDENT PASS" else "DUPLICATE VISITOR PASS"
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
@@ -91,45 +99,109 @@ fun GatePassDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "RESIDENT GATE PASS",
-                        fontSize = 12.sp,
+                        text = passTitle,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = VedvoraGold,
-                        letterSpacing = 1.5.sp
+                        letterSpacing = 1.2.sp
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Box(
+                // Toggle Pass Types: Original vs Duplicate
+                Row(
                     modifier = Modifier
-                        .size(180.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(2.dp, VedvoraGold.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                    contentAlignment = Alignment.Center
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.QrCode2,
-                            contentDescription = "QR Pass",
-                            tint = VedvoraGold,
-                            modifier = Modifier.size(120.dp)
-                        )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isOriginalPass) VedvoraGold else Color.Transparent)
+                            .clickable {
+                                isOriginalPass = true
+                                isApprovedByGuard = false
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "VEDV-8820-2026",
+                            text = "Original Pass",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            letterSpacing = 2.sp
+                            color = if (isOriginalPass) VedvoraPrimary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (!isOriginalPass) VedvoraGold else Color.Transparent)
+                            .clickable {
+                                isOriginalPass = false
+                                isApprovedByGuard = false
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Duplicate Pass",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (!isOriginalPass) VedvoraPrimary else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Scanner View / QR Box
+                Box(
+                    modifier = Modifier
+                        .size(190.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(
+                            2.dp,
+                            if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold.copy(alpha = 0.6f),
+                            RoundedCornerShape(20.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = if (isApprovedByGuard) Icons.Default.CheckCircle else Icons.Default.QrCode2,
+                            contentDescription = "QR Pass Scanner",
+                            tint = if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold,
+                            modifier = Modifier.size(110.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = passCode,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = 1.5.sp
+                        )
+                        Text(
+                            text = if (isApprovedByGuard) "VERIFIED BY GATE GUARD" else "READY FOR SCANNER",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
                     text = "Johnathan Doe",
@@ -144,25 +216,83 @@ fun GatePassDialog(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(VedvoraGold.copy(alpha = 0.15f))
+                        .background(
+                            if (isApprovedByGuard) Color(0xFF10B981).copy(alpha = 0.15f)
+                            else VedvoraGold.copy(alpha = 0.15f)
+                        )
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Valid for Express Entry Today",
-                        fontSize = 11.sp,
+                        text = if (isApprovedByGuard) "Security Officer Marcus Approved • Apartment Unlocked"
+                               else if (isOriginalPass) "Master Resident Pass • Unlimited Access"
+                               else "Temporary Guest Pass • Single Gate Access",
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = VedvoraGold
+                        color = if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold
                     )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
+                // Gate Scanner Action Buttons
+                if (!isApprovedByGuard) {
+                    Button(
+                        onClick = {
+                            isScanning = true
+                            isApprovedByGuard = true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("scan_gate_pass_btn"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold)
+                    ) {
+                        Icon(Icons.Default.QrCode2, contentDescription = null, tint = VedvoraPrimary, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "SCAN AT GATE & VERIFY PASS",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = VedvoraPrimary
+                        )
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            onApproveGateScan(
+                                if (isOriginalPass) "Original Resident" else "Duplicate Visitor",
+                                passCode,
+                                isOriginalPass
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("approve_gate_entry_btn"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "APPROVE & ENTER APARTMENT",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
@@ -171,15 +301,14 @@ fun GatePassDialog(
                     ) {
                         Text("Close", color = MaterialTheme.colorScheme.onSurface)
                     }
-                    Button(
+                    OutlinedButton(
                         onClick = onShare,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = VedvoraPrimary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = VedvoraGold, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Share", color = VedvoraPrimary, fontWeight = FontWeight.Bold)
+                        Text("Share", color = VedvoraGold, fontWeight = FontWeight.Bold)
                     }
                 }
             }

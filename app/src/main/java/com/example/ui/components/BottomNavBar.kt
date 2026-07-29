@@ -23,12 +23,14 @@ import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pool
+import androidx.compose.material.icons.filled.RoomService
 import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Pool
+import androidx.compose.material.icons.outlined.RoomService
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,9 +54,10 @@ sealed class VedvoraTab(
     val inactiveIcon: ImageVector
 ) {
     object Home : VedvoraTab("home", "HOME", Icons.Default.Home, Icons.Outlined.Home)
+    object Concierge : VedvoraTab("concierge", "REQUESTS", Icons.Default.RoomService, Icons.Outlined.RoomService)
     object VIP : VedvoraTab("vip", "VIP", Icons.Default.Diamond, Icons.Outlined.Diamond)
-    object Booking : VedvoraTab("booking", "BOOKING", Icons.Default.Pool, Icons.Outlined.Pool)
     object Guests : VedvoraTab("guests", "GUESTS", Icons.Default.People, Icons.Outlined.People)
+    object Booking : VedvoraTab("booking", "AMENITIES", Icons.Default.Pool, Icons.Outlined.Pool)
     object Billing : VedvoraTab("billing", "BILLING", Icons.Default.Payments, Icons.Outlined.Payments)
     object Account : VedvoraTab("account", "ACCOUNT", Icons.Default.Person, Icons.Outlined.Person)
 }
@@ -67,9 +70,9 @@ fun VedvoraBottomBar(
 ) {
     val tabs = listOf(
         VedvoraTab.Home,
+        VedvoraTab.Concierge,
         VedvoraTab.VIP,
         VedvoraTab.Booking,
-        VedvoraTab.Guests,
         VedvoraTab.Billing,
         VedvoraTab.Account
     )

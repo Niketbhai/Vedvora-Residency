@@ -41,9 +41,13 @@ class MainActivity : ComponentActivity() {
                         when (screen) {
                             AppScreen.Welcome -> {
                                 WelcomeScreen(
-                                    onEnterPortal = { currentScreen = AppScreen.MainPortal },
+                                    onEnterPortalWithDetails = { name, building, flat ->
+                                        viewModel.updateResidentDetails(name, building, flat)
+                                        viewModel.showToast("Welcome $name! Credentials saved.")
+                                        currentScreen = AppScreen.MainPortal
+                                    },
                                     onLoginClick = {
-                                        viewModel.showToast("Welcome back, Johnathan. Auto-authenticated.")
+                                        viewModel.showToast("Welcome back! Auto-authenticated.")
                                         currentScreen = AppScreen.MainPortal
                                     }
                                 )
