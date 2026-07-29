@@ -57,6 +57,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,6 +78,7 @@ import com.example.viewmodel.VedvoraViewModel
 fun VisitorsScreen(
     viewModel: VedvoraViewModel
 ) {
+    val context = LocalContext.current
     val searchQuery by viewModel.visitorSearchQuery.collectAsState()
     val activeFilter by viewModel.visitorFilter.collectAsState()
     val scheduledVisitors by viewModel.scheduledVisitors.collectAsState()
@@ -336,7 +342,21 @@ fun VisitorsScreen(
                                 IconButton(onClick = { viewModel.isGatePassDialogOpen.value = true }) {
                                     Icon(Icons.Default.QrCode2, contentDescription = "QR Pass", tint = VedvoraGold)
                                 }
-                                IconButton(onClick = { viewModel.showToast("Pass Shared for ${visitor.name}") }) {
+                                IconButton(onClick = {
+                                    val shareText = "Vedvora VIP Entry Pass\nVisitor: ${visitor.name}\nCategory: ${visitor.category}\nDetails: ${visitor.subtitle}\nScheduled Arrival: ${visitor.timeStr}\nGate Code: VEDV-ORIG-8820-2026"
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                    val clip = ClipData.newPlainText("Vedvora Visitor Pass", shareText)
+                                    clipboard?.setPrimaryClip(clip)
+
+                                    val sendIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                        type = "text/plain"
+                                    }
+                                    val shareIntent = Intent.createChooser(sendIntent, "Share Visitor Pass")
+                                    context.startActivity(shareIntent)
+                                    viewModel.showToast("Pass Shared for ${visitor.name}! Link copied to clipboard.")
+                                }) {
                                     Icon(Icons.Default.IosShare, contentDescription = "Share", tint = VedvoraGold)
                                 }
                             }

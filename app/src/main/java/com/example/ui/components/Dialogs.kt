@@ -57,24 +57,154 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.ui.window.Dialog
 import com.example.ui.theme.VedvoraError
 import com.example.ui.theme.VedvoraGold
 import com.example.ui.theme.VedvoraPrimary
 
 @Composable
+fun AuthenticQrCodeView(
+    passCode: String,
+    isOriginal: Boolean,
+    isApproved: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val darkColor = if (isApproved) Color(0xFF10B981) else if (isOriginal) VedvoraGold else Color(0xFFE2E8F0)
+    val lightColor = Color(0xFF0F172A)
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(lightColor)
+            .padding(10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val gridSize = 21
+            val cellSize = size.width / gridSize
+
+            // Function to check if a cell belongs to 7x7 finder patterns
+            fun isFinderPattern(r: Int, c: Int): Boolean {
+                if (r in 0..6 && c in 0..6) return true
+                if (r in 0..6 && c in (gridSize - 7)..<gridSize) return true
+                if (r in (gridSize - 7)..<gridSize && c in 0..6) return true
+                return false
+            }
+
+            // Draw Finder Pattern
+            fun drawFinder(startR: Int, startC: Int) {
+                for (r in 0..6) {
+                    for (c in 0..6) {
+                        val isOuter = r == 0 || r == 6 || c == 0 || c == 6
+                        val isInner = r in 2..4 && c in 2..4
+                        if (isOuter || isInner) {
+                            drawRect(
+                                color = darkColor,
+                                topLeft = Offset((startC + c) * cellSize, (startR + r) * cellSize),
+                                size = Size(cellSize, cellSize)
+                            )
+                        }
+                    }
+                }
+            }
+
+            drawFinder(0, 0)
+            drawFinder(0, gridSize - 7)
+            drawFinder(gridSize - 7, 0)
+
+            // Draw timing patterns
+            for (i in 7 until gridSize - 7) {
+                if (i % 2 == 0) {
+                    drawRect(
+                        color = darkColor,
+                        topLeft = Offset(i * cellSize, 6 * cellSize),
+                        size = Size(cellSize, cellSize)
+                    )
+                    drawRect(
+                        color = darkColor,
+                        topLeft = Offset(6 * cellSize, i * cellSize),
+                        size = Size(cellSize, cellSize)
+                    )
+                }
+            }
+
+            // Draw data modules
+            val seed = passCode.hashCode()
+            for (r in 0 until gridSize) {
+                for (c in 0 until gridSize) {
+                    if (isFinderPattern(r, c)) continue
+                    if (r == 6 || c == 6) continue
+                    if (r in 8..12 && c in 8..12) continue
+
+                    val bit = ((r * 31 + c * 17 + seed) % 3 == 0) || ((r + c) % 2 == 0 && (r * c) % 3 != 0)
+                    if (bit) {
+                        drawRect(
+                            color = darkColor,
+                            topLeft = Offset(c * cellSize, r * cellSize),
+                            size = Size(cellSize, cellSize)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Center Emblem Badge overlay
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isApproved) Color(0xFF10B981) else if (isOriginal) VedvoraGold else Color(0xFF334155))
+                .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (isApproved) "VERIFIED" else if (isOriginal) "ORIGINAL" else "DUPLICATE",
+                fontSize = 7.sp,
+                fontWeight = FontWeight.Black,
+                color = if (isApproved) Color.White else if (isOriginal) VedvoraPrimary else Color.White
+            )
+        }
+    }
+}
+
+@Composable
 fun GatePassDialog(
-    residentUnit: String = "Tower C, Penthouse 1204",
+    residentUnit: String = "Tower A, Flat 1204",
     onDismiss: () -> Unit,
     onShare: () -> Unit,
     onApproveGateScan: (passType: String, passCode: String, isOriginal: Boolean) -> Unit = { _, _, _ -> }
 ) {
-    var isOriginalPass by remember { mutableStateOf(true) }
+    val context = LocalContext.current
     var isScanning by remember { mutableStateOf(false) }
     var isApprovedByGuard by remember { mutableStateOf(false) }
 
-    val passCode = if (isOriginalPass) "VEDV-ORIG-8820-2026" else "VEDV-DUP-9941-2026"
-    val passTitle = if (isOriginalPass) "ORIGINAL MASTER RESIDENT PASS" else "DUPLICATE VISITOR PASS"
+    val passCode = "VEDV-ORIG-8820-2026"
+    val passTitle = "ORIGINAL MASTER RESIDENT PASS"
+
+    val handleSharePass = {
+        val shareText = "Vedvora Luxury Residency Pass\nCode: $passCode\nResident Unit: $residentUnit\nStatus: ${if (isApprovedByGuard) "VERIFIED BY GATE GUARD" else "ACTIVE RESIDENT PASS"}\nPresent at Main Gate Scanner."
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        val clip = ClipData.newPlainText("Vedvora Gate Pass", shareText)
+        clipboard?.setPrimaryClip(clip)
+
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, "Share Gate Pass")
+        context.startActivity(shareIntent)
+        onShare()
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -110,87 +240,36 @@ fun GatePassDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Toggle Pass Types: Original vs Duplicate
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isOriginalPass) VedvoraGold else Color.Transparent)
-                            .clickable {
-                                isOriginalPass = true
-                                isApprovedByGuard = false
-                            }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Original Pass",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isOriginalPass) VedvoraPrimary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (!isOriginalPass) VedvoraGold else Color.Transparent)
-                            .clickable {
-                                isOriginalPass = false
-                                isApprovedByGuard = false
-                            }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Duplicate Pass",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (!isOriginalPass) VedvoraPrimary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Scanner View / QR Box
                 Box(
                     modifier = Modifier
-                        .size(190.dp)
+                        .size(200.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .border(
                             2.dp,
-                            if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold.copy(alpha = 0.6f),
+                            if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold,
                             RoundedCornerShape(20.dp)
-                        ),
+                        )
+                        .padding(12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = if (isApprovedByGuard) Icons.Default.CheckCircle else Icons.Default.QrCode2,
-                            contentDescription = "QR Pass Scanner",
-                            tint = if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold,
-                            modifier = Modifier.size(110.dp)
+                        AuthenticQrCodeView(
+                            passCode = passCode,
+                            isOriginal = true,
+                            isApproved = isApprovedByGuard,
+                            modifier = Modifier.size(130.dp)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = passCode,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurface,
-                            letterSpacing = 1.5.sp
+                            letterSpacing = 1.2.sp
                         )
                         Text(
                             text = if (isApprovedByGuard) "VERIFIED BY GATE GUARD" else "READY FOR SCANNER",
@@ -204,7 +283,7 @@ fun GatePassDialog(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "Johnathan Doe",
+                    text = "Arjun Sharma",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = MaterialTheme.colorScheme.onSurface
@@ -227,9 +306,8 @@ fun GatePassDialog(
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = if (isApprovedByGuard) "Security Officer Marcus Approved • Apartment Unlocked"
-                               else if (isOriginalPass) "Master Resident Pass • Unlimited Access"
-                               else "Temporary Guest Pass • Single Gate Access",
+                        text = if (isApprovedByGuard) "Security Officer Vikram Approved • Apartment Unlocked"
+                               else "Master Resident Pass • Unlimited Access",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isApprovedByGuard) Color(0xFF10B981) else VedvoraGold
@@ -265,9 +343,9 @@ fun GatePassDialog(
                     Button(
                         onClick = {
                             onApproveGateScan(
-                                if (isOriginalPass) "Original Resident" else "Duplicate Visitor",
+                                "Original Resident",
                                 passCode,
-                                isOriginalPass
+                                true
                             )
                         },
                         modifier = Modifier
@@ -302,7 +380,7 @@ fun GatePassDialog(
                         Text("Close", color = MaterialTheme.colorScheme.onSurface)
                     }
                     OutlinedButton(
-                        onClick = onShare,
+                        onClick = { handleSharePass() },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -514,7 +592,7 @@ fun PreAuthorizeVisitorDialog(
 
 @Composable
 fun PaymentDialog(
-    amount: Double = 450.00,
+    amount: Double = 45000.00,
     onDismiss: () -> Unit,
     onConfirmPayment: () -> Unit
 ) {
@@ -563,9 +641,9 @@ fun PaymentDialog(
                     Column {
                         Text("Total Amount Due", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                         Text(
-                            text = "\$${String.format("%.2f", amount)}",
+                            text = "₹${String.format("%,.2f", amount)}",
                             color = Color.White,
-                            fontSize = 32.sp,
+                            fontSize = 30.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(12.dp))

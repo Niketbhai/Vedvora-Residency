@@ -140,7 +140,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = residentName.split(" ").firstOrNull() ?: "Johnathan",
+                            text = residentName.split(" ").firstOrNull() ?: "Arjun",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = VedvoraGold,

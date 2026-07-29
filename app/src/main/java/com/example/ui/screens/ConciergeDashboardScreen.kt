@@ -61,7 +61,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.entity.BookingEntity
 import com.example.ui.components.RescheduleRequestDialog
+import com.example.ui.components.ServiceFeedbackDialog
 import com.example.ui.components.SubmitLifestyleRequestDialog
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ThumbUp
 import com.example.ui.theme.VedvoraError
 import com.example.ui.theme.VedvoraGold
 import com.example.ui.theme.VedvoraPrimary
@@ -77,11 +80,13 @@ fun ConciergeDashboardScreen(
     val bookings by viewModel.bookings.collectAsState()
     val isSubmitDialogOpen by viewModel.isSubmitLifestyleRequestOpen.collectAsState()
     val selectedRescheduleBooking by viewModel.selectedRescheduleBooking.collectAsState()
+    val selectedRatingBooking by viewModel.selectedRatingBooking.collectAsState()
 
     var activeFilter by remember { mutableStateOf("All Requests") }
 
     val filterOptions = listOf(
         "All Requests",
+        "Completed & Rated",
         "Maintenance",
         "Cleaning",
         "Dining",
@@ -92,6 +97,8 @@ fun ConciergeDashboardScreen(
     val filteredBookings = remember(bookings, activeFilter) {
         if (activeFilter == "All Requests") {
             bookings
+        } else if (activeFilter == "Completed & Rated") {
+            bookings.filter { it.status.equals("Completed", ignoreCase = true) || it.rating > 0 }
         } else {
             bookings.filter {
                 it.category.contains(activeFilter, ignoreCase = true) ||
@@ -266,6 +273,9 @@ fun ConciergeDashboardScreen(
                             onCancelClick = {
                                 viewModel.cancelBooking(booking.id, booking.serviceName)
                             },
+                            onRateClick = {
+                                viewModel.selectedRatingBooking.value = booking
+                            },
                             onCallConcierge = {
                                 viewModel.showToast("Connecting to Concierge Desk Line #001...")
                             }
@@ -308,6 +318,17 @@ fun ConciergeDashboardScreen(
                 }
             )
         }
+
+        // Service Feedback Dialog
+        selectedRatingBooking?.let { b ->
+            ServiceFeedbackDialog(
+                booking = b,
+                onDismiss = { viewModel.selectedRatingBooking.value = null },
+                onSubmitFeedback = { rating, comment, tags ->
+                    viewModel.submitServiceRating(b.id, rating, comment, tags)
+                }
+            )
+        }
     }
 }
 
@@ -316,6 +337,7 @@ fun ConciergeRequestCard(
     booking: BookingEntity,
     onRescheduleClick: () -> Unit,
     onCancelClick: () -> Unit,
+    onRateClick: () -> Unit = {},
     onCallConcierge: () -> Unit
 ) {
     val categoryIcon = when (booking.category.lowercase()) {
@@ -327,9 +349,12 @@ fun ConciergeRequestCard(
         else -> Icons.Default.RoomService
     }
 
-    val statusColor = when (booking.status.lowercase()) {
-        "confirmed" -> VedvoraSecondary
-        "in progress" -> Color(0xFF2196F3)
+    val isCompleted = booking.status.equals("Completed", ignoreCase = true) || booking.rating > 0
+
+    val statusColor = when {
+        isCompleted -> Color(0xFF10B981)
+        booking.status.lowercase() == "confirmed" -> VedvoraSecondary
+        booking.status.lowercase() == "in progress" -> Color(0xFF2196F3)
         else -> VedvoraGold
     }
 
@@ -394,7 +419,7 @@ fun ConciergeRequestCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = booking.status.uppercase(),
+                        text = if (isCompleted) "COMPLETED" else booking.status.uppercase(),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = statusColor
@@ -467,6 +492,71 @@ fun ConciergeRequestCard(
                 }
             }
 
+            // Rating & Feedback Display Banner (If Rated)
+            if (booking.rating > 0) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(VedvoraGold.copy(alpha = 0.12f))
+                        .border(1.dp, VedvoraGold.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                        .padding(10.dp)
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                (1..5).forEach { starIndex ->
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = if (starIndex <= booking.rating) VedvoraGold else Color.Gray.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "${booking.rating}.0 / 5.0",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = VedvoraGold
+                                )
+                            }
+                            Text(
+                                text = "VERIFIED FEEDBACK",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = VedvoraGold,
+                                letterSpacing = 1.sp
+                            )
+                        }
+
+                        if (booking.feedbackTags.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Highlights: ${booking.feedbackTags}",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        if (booking.feedbackText.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "\"${booking.feedbackText}\"",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
 
             // Action Buttons
@@ -474,43 +564,69 @@ fun ConciergeRequestCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Reschedule Button
-                OutlinedButton(
-                    onClick = onRescheduleClick,
+                // Rate Service Button
+                Button(
+                    onClick = onRateClick,
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.2f)
                         .height(38.dp)
-                        .testTag("reschedule_req_btn_${booking.id}"),
-                    shape = RoundedCornerShape(10.dp)
+                        .testTag("rate_service_btn_${booking.id}"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (booking.rating > 0) MaterialTheme.colorScheme.surfaceVariant else VedvoraGold
+                    )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Schedule,
+                        imageVector = Icons.Default.Star,
                         contentDescription = null,
-                        tint = VedvoraGold,
+                        tint = if (booking.rating > 0) VedvoraGold else VedvoraPrimary,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Reschedule", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VedvoraGold)
+                    Text(
+                        text = if (booking.rating > 0) "Update Rating" else "Rate Service",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (booking.rating > 0) VedvoraGold else VedvoraPrimary
+                    )
                 }
 
-                // Cancel Button
-                OutlinedButton(
-                    onClick = onCancelClick,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .testTag("cancel_req_btn_${booking.id}"),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = VedvoraError)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Cancel,
-                        contentDescription = null,
-                        tint = VedvoraError,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Cancel", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VedvoraError)
+                if (!isCompleted) {
+                    // Reschedule Button
+                    OutlinedButton(
+                        onClick = onRescheduleClick,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .testTag("reschedule_req_btn_${booking.id}"),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = VedvoraGold,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Reschedule", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VedvoraGold)
+                    }
+
+                    // Cancel Button
+                    OutlinedButton(
+                        onClick = onCancelClick,
+                        modifier = Modifier
+                            .height(38.dp)
+                            .testTag("cancel_req_btn_${booking.id}"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = VedvoraError)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Cancel,
+                            contentDescription = null,
+                            tint = VedvoraError,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
 
                 // Call Desk

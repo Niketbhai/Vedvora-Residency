@@ -70,8 +70,8 @@ fun WelcomeScreen(
     onLoginClick: () -> Unit
 ) {
     var isVisible by remember { mutableStateOf(false) }
-    var nameInput by remember { mutableStateOf("Johnathan Doe") }
-    var buildingInput by remember { mutableStateOf("Tower C") }
+    var nameInput by remember { mutableStateOf("Arjun Sharma") }
+    var buildingInput by remember { mutableStateOf("Tower A") }
     var flatInput by remember { mutableStateOf("Penthouse 1204") }
 
     LaunchedEffect(Unit) {

@@ -37,7 +37,10 @@ data class BookingEntity(
     val status: String,
     val attendants: String = "1 Ready",
     val category: String = "Lifestyle",
-    val specialNotes: String = ""
+    val specialNotes: String = "",
+    val rating: Int = 0,
+    val feedbackText: String = "",
+    val feedbackTags: String = ""
 )
 
 @Entity(tableName = "notices")

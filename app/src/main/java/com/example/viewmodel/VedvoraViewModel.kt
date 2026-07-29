@@ -35,19 +35,20 @@ class VedvoraViewModel(application: Application) : AndroidViewModel(application)
     val isLoginDialogOpen = MutableStateFlow(false)
 
     // User session
-    val residentName = MutableStateFlow("Johnathan Doe")
-    val residentBuilding = MutableStateFlow("Tower C")
+    val residentName = MutableStateFlow("Arjun Sharma")
+    val residentBuilding = MutableStateFlow("Tower A")
     val residentFlat = MutableStateFlow("Penthouse 1204")
-    val residentUnit = MutableStateFlow("Tower C • Flat Penthouse 1204")
-    val residentStatus = MutableStateFlow("Platinum Member")
+    val residentUnit = MutableStateFlow("Tower A • Flat Penthouse 1204")
+    val residentStatus = MutableStateFlow("Platinum VIP Member")
 
     // Lifestyle Request Dialog state
     val isSubmitLifestyleRequestOpen = MutableStateFlow(false)
-    val selectedRescheduleBooking = MutableStateFlow<BookingEntity?>(null)
+    val selectedRescheduleBooking = MutableStateFlow<BookingEntity?> (null)
+    val selectedRatingBooking = MutableStateFlow<BookingEntity?>(null)
 
     fun updateResidentDetails(name: String, building: String, flat: String) {
-        val finalName = name.ifBlank { "Johnathan Doe" }.trim()
-        val finalBuilding = building.ifBlank { "Tower C" }.trim()
+        val finalName = name.ifBlank { "Arjun Sharma" }.trim()
+        val finalBuilding = building.ifBlank { "Tower A" }.trim()
         val finalFlat = flat.ifBlank { "Penthouse 1204" }.trim()
 
         residentName.value = finalName
@@ -210,6 +211,14 @@ class VedvoraViewModel(application: Application) : AndroidViewModel(application)
             isGatePassDialogOpen.value = false
             val passCategoryLabel = if (isOriginal) "Original Resident Master Pass" else "Duplicate Visitor Pass"
             showToast("Gate Access Approved ($passCategoryLabel #$passCode) • Security Officer Verified • Apartment Entry Granted!")
+        }
+    }
+
+    fun submitServiceRating(bookingId: Long, rating: Int, feedbackText: String, feedbackTags: String) {
+        viewModelScope.launch {
+            repository.rateBooking(bookingId, rating, feedbackText, feedbackTags)
+            selectedRatingBooking.value = null
+            showToast("★ $rating-Star Feedback Submitted! Thank you for rating Vedvora Concierge.")
         }
     }
 

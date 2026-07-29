@@ -143,7 +143,7 @@ fun MainScreen(
 
         if (isPaymentOpen) {
             PaymentDialog(
-                amount = 450.00,
+                amount = 45000.00,
                 onDismiss = { viewModel.isPaymentDialogOpen.value = false },
                 onConfirmPayment = { viewModel.payAllDues() }
             )

@@ -53,6 +53,9 @@ interface VedvoraDao {
     @Query("UPDATE bookings SET status = :status WHERE id = :id")
     suspend fun updateBookingStatus(id: Long, status: String)
 
+    @Query("UPDATE bookings SET rating = :rating, feedbackText = :feedbackText, feedbackTags = :feedbackTags WHERE id = :id")
+    suspend fun updateBookingRating(id: Long, rating: Int, feedbackText: String, feedbackTags: String)
+
     @Query("SELECT * FROM notices ORDER BY id ASC")
     fun getNotices(): Flow<List<NoticeEntity>>
 

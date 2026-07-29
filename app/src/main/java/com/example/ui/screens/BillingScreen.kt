@@ -136,7 +136,7 @@ fun BillingScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
-                            text = "\$${String.format("%.2f", displayAmount)}",
+                            text = "₹${String.format("%,.2f", displayAmount)}",
                             fontSize = 42.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -259,7 +259,7 @@ fun BillingScreen(
                             }
 
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("\$${String.format("%.2f", invoice.amount)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("₹${String.format("%,.2f", invoice.amount)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 if (invoice.status == "Paid") {
                                     Box(
