@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.example.ui.components.BookingDialog
 import com.example.ui.components.CrisisAlertDialog
+import com.example.ui.components.DigitalResidencyCardDialog
 import com.example.ui.components.GatePassDialog
 import com.example.ui.components.PaymentDialog
 import com.example.ui.components.PreAuthorizeVisitorDialog
@@ -45,6 +46,7 @@ fun MainScreen(
     val isCrisisAlertOpen by viewModel.isCrisisAlertOpen.collectAsState()
     val isSubmitLifestyleRequestOpen by viewModel.isSubmitLifestyleRequestOpen.collectAsState()
     val isProfilePhotoPickerOpen by viewModel.isProfilePhotoPickerOpen.collectAsState()
+    val isDigitalIdCardOpen by viewModel.isDigitalIdCardOpen.collectAsState()
     val residentProfilePicPath by viewModel.residentProfilePicPath.collectAsState()
     val residentUnit by viewModel.residentUnit.collectAsState()
 
@@ -185,6 +187,13 @@ fun MainScreen(
                 viewModel = viewModel,
                 hasCustomPhoto = (residentProfilePicPath != null),
                 onDismiss = { viewModel.isProfilePhotoPickerOpen.value = false }
+            )
+        }
+
+        if (isDigitalIdCardOpen) {
+            DigitalResidencyCardDialog(
+                viewModel = viewModel,
+                onDismiss = { viewModel.isDigitalIdCardOpen.value = false }
             )
         }
     }

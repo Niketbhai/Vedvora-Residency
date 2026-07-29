@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Diamond
@@ -199,8 +200,22 @@ fun HomeScreen(
                 // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Button(
+                        onClick = { viewModel.isDigitalIdCardOpen.value = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .testTag("home_digital_id_btn"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VedvoraPrimaryContainer)
+                    ) {
+                        Icon(Icons.Default.Badge, contentDescription = null, tint = VedvoraGold, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Digital ID", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = VedvoraGold)
+                    }
+
                     Button(
                         onClick = { viewModel.isSubmitLifestyleRequestOpen.value = true },
                         modifier = Modifier
@@ -210,9 +225,9 @@ fun HomeScreen(
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = VedvoraPrimaryContainer)
                     ) {
-                        Icon(Icons.Default.RoomService, contentDescription = null, tint = VedvoraGold)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("VIP Concierge", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = VedvoraGold)
+                        Icon(Icons.Default.RoomService, contentDescription = null, tint = VedvoraGold, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Concierge", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = VedvoraGold)
                     }
 
                     OutlinedButton(
@@ -224,9 +239,9 @@ fun HomeScreen(
                         shape = RoundedCornerShape(14.dp),
                         border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.horizontalGradient(listOf(VedvoraGold, VedvoraGold)))
                     ) {
-                        Icon(Icons.Default.QrCode2, contentDescription = null, tint = VedvoraGold)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Gate Pass", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = VedvoraGold)
+                        Icon(Icons.Default.QrCode2, contentDescription = null, tint = VedvoraGold, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Gate Pass", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = VedvoraGold)
                     }
                 }
             }

@@ -42,6 +42,7 @@ class VedvoraViewModel(application: Application) : AndroidViewModel(application)
     val isNotificationsOpen = MutableStateFlow(false)
     val isLoginDialogOpen = MutableStateFlow(false)
     val isProfilePhotoPickerOpen = MutableStateFlow(false)
+    val isDigitalIdCardOpen = MutableStateFlow(false)
 
     // User session
     val residentName = MutableStateFlow("Arjun Sharma")

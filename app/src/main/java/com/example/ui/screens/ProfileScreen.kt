@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
@@ -210,6 +211,50 @@ fun ProfileScreen(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
+
+            // Digital Residency ID Card Banner
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = VedvoraPrimary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.isDigitalIdCardOpen.value = true }
+                    .testTag("open_digital_id_card_banner")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(VedvoraGold.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Badge, contentDescription = null, tint = VedvoraGold, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column {
+                            Text("Digital Residency ID Card", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Display for turnstile & building access", color = VedvoraGold, fontSize = 11.sp)
+                        }
+                    }
+                    Button(
+                        onClick = { viewModel.isDigitalIdCardOpen.value = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("VIEW CARD", color = VedvoraPrimary, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Concierge Direct Line
             Card(
