@@ -267,6 +267,9 @@ fun ConciergeDashboardScreen(
                     items(filteredBookings, key = { it.id }) { booking ->
                         ConciergeRequestCard(
                             booking = booking,
+                            onStatusUpdate = { newStatus ->
+                                viewModel.updateBookingStatus(booking.id, booking.serviceName, newStatus)
+                            },
                             onRescheduleClick = {
                                 viewModel.selectedRescheduleBooking.value = booking
                             },
@@ -335,6 +338,7 @@ fun ConciergeDashboardScreen(
 @Composable
 fun ConciergeRequestCard(
     booking: BookingEntity,
+    onStatusUpdate: (String) -> Unit = {},
     onRescheduleClick: () -> Unit,
     onCancelClick: () -> Unit,
     onRateClick: () -> Unit = {},
@@ -553,6 +557,41 @@ fun ConciergeRequestCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                    }
+                }
+            }
+
+            // Quick Realtime Status Transition & Notification Triggers
+            if (!isCompleted) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!booking.status.equals("In Progress", ignoreCase = true)) {
+                        Button(
+                            onClick = { onStatusUpdate("In Progress") },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp)
+                                .testTag("set_in_progress_${booking.id}"),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5))
+                        ) {
+                            Text("⚡ In Progress (Push)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    Button(
+                        onClick = { onStatusUpdate("Completed") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp)
+                            .testTag("set_completed_${booking.id}"),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Text("✅ Complete (Push)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }

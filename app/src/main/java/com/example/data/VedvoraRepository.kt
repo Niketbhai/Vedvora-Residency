@@ -349,6 +349,18 @@ class VedvoraRepository(private val dao: VedvoraDao) {
         )
     }
 
+    suspend fun updateBookingStatus(id: Long, serviceName: String, status: String) {
+        dao.updateBookingStatus(id, status)
+        dao.insertActivityLog(
+            ActivityLogEntity(
+                title = "Status Changed: $serviceName",
+                referenceCode = "New Status: $status",
+                timeAgoStr = "Just Now",
+                iconType = "service"
+            )
+        )
+    }
+
     suspend fun rateBooking(id: Long, rating: Int, feedbackText: String, feedbackTags: String) {
         dao.updateBookingRating(id, rating, feedbackText, feedbackTags)
         dao.updateBookingStatus(id, "Completed")

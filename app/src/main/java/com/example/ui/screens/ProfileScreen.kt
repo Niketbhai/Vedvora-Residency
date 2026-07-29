@@ -21,9 +21,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Shield
@@ -38,6 +40,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,11 +55,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.ui.components.ProfilePhotoPickerDialog
 import com.example.ui.theme.VedvoraError
 import com.example.ui.theme.VedvoraGold
 import com.example.ui.theme.VedvoraPrimary
 import com.example.ui.theme.VedvoraPrimaryContainer
 import com.example.viewmodel.VedvoraViewModel
+import java.io.File
 
 @Composable
 fun ProfileScreen(
@@ -63,6 +70,16 @@ fun ProfileScreen(
 ) {
     val residentName by viewModel.residentName.collectAsState()
     val residentUnit by viewModel.residentUnit.collectAsState()
+    val profilePicPath by viewModel.residentProfilePicPath.collectAsState()
+    var isPickerOpen by remember { mutableStateOf(false) }
+
+    val avatarModel = remember(profilePicPath) {
+        if (profilePicPath != null && File(profilePicPath!!).exists()) {
+            File(profilePicPath!!)
+        } else {
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuBtof968EME_AT3J1X04VqgMz2xHOsMs_XTnv7Hq48M1nhmsEnAlfrxdbMhFGS_QqNYoN91npY4DXsydgXk8XSuwnIjqwDH0Yro8mQzvzfgNF4_sGxmEKuf-gEgfG4vVJofi_j3eKwH36638MQYQU0xmwU_iN14Xge2TWjaipqNhw_Um7wHMLQrHfe-TzFEw4OfOMNOkSxwvs9_P3FX6sygdnomhDpSHUy7PK6zyHnZRZUu-qArPFWvSFuj5p-8GNEkYeU59Humrcw"
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -94,16 +111,42 @@ fun ProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(90.dp)
+                            .size(100.dp)
                             .clip(CircleShape)
-                            .border(3.dp, VedvoraGold, CircleShape)
+                            .clickable { isPickerOpen = true }
+                            .testTag("profile_avatar_image"),
+                        contentAlignment = Alignment.Center
                     ) {
-                        AsyncImage(
-                            model = "https://lh3.googleusercontent.com/aida-public/AB6AXuBtof968EME_AT3J1X04VqgMz2xHOsMs_XTnv7Hq48M1nhmsEnAlfrxdbMhFGS_QqNYoN91npY4DXsydgXk8XSuwnIjqwDH0Yro8mQzvzfgNF4_sGxmEKuf-gEgfG4vVJofi_j3eKwH36638MQYQU0xmwU_iN14Xge2TWjaipqNhw_Um7wHMLQrHfe-TzFEw4OfOMNOkSxwvs9_P3FX6sygdnomhDpSHUy7PK6zyHnZRZUu-qArPFWvSFuj5p-8GNEkYeU59Humrcw",
-                            contentDescription = residentName,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .border(3.dp, VedvoraGold, CircleShape)
+                        ) {
+                            AsyncImage(
+                                model = avatarModel,
+                                contentDescription = residentName,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        // Camera Badge
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(VedvoraGold)
+                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Change Profile Picture",
+                                tint = VedvoraPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -127,6 +170,23 @@ fun ProfileScreen(
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = { isPickerOpen = true },
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.testTag("change_photo_btn")
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = VedvoraGold, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (profilePicPath != null) "Update Profile Photo" else "Upload Profile Photo",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VedvoraGold
                         )
                     }
 
@@ -233,7 +293,29 @@ fun ProfileScreen(
                         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
-                    // Item 3 Privacy
+                    // Item 3 Push Notifications
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.showToast("Realtime Push Notifications Active for Service Updates!")
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = VedvoraGold)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Realtime Push Notifications", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("Alerts on 'In Progress' & 'Completed'", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+
+                    // Item 4 Privacy
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -268,6 +350,15 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Exit Member Portal", fontWeight = FontWeight.Bold, color = VedvoraError)
             }
+        }
+
+        // Profile Photo Picker Dialog
+        if (isPickerOpen) {
+            ProfilePhotoPickerDialog(
+                viewModel = viewModel,
+                hasCustomPhoto = (profilePicPath != null),
+                onDismiss = { isPickerOpen = false }
+            )
         }
     }
 }

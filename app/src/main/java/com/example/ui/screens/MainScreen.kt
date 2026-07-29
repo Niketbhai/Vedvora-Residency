@@ -21,6 +21,7 @@ import com.example.ui.components.CrisisAlertDialog
 import com.example.ui.components.GatePassDialog
 import com.example.ui.components.PaymentDialog
 import com.example.ui.components.PreAuthorizeVisitorDialog
+import com.example.ui.components.ProfilePhotoPickerDialog
 import com.example.ui.components.SubmitLifestyleRequestDialog
 import com.example.ui.components.VedvoraBottomBar
 import com.example.ui.components.VedvoraTab
@@ -43,6 +44,8 @@ fun MainScreen(
     val selectedService by viewModel.selectedBookingService.collectAsState()
     val isCrisisAlertOpen by viewModel.isCrisisAlertOpen.collectAsState()
     val isSubmitLifestyleRequestOpen by viewModel.isSubmitLifestyleRequestOpen.collectAsState()
+    val isProfilePhotoPickerOpen by viewModel.isProfilePhotoPickerOpen.collectAsState()
+    val residentProfilePicPath by viewModel.residentProfilePicPath.collectAsState()
     val residentUnit by viewModel.residentUnit.collectAsState()
 
     LaunchedEffect(userToastMessage) {
@@ -174,6 +177,14 @@ fun MainScreen(
                 onSubmit = { title, category, notes, date, time ->
                     viewModel.submitLifestyleRequest(title, category, notes, date, time)
                 }
+            )
+        }
+
+        if (isProfilePhotoPickerOpen) {
+            ProfilePhotoPickerDialog(
+                viewModel = viewModel,
+                hasCustomPhoto = (residentProfilePicPath != null),
+                onDismiss = { viewModel.isProfilePhotoPickerOpen.value = false }
             )
         }
     }

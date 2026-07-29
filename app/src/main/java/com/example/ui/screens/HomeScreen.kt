@@ -88,9 +88,18 @@ fun HomeScreen(
 ) {
     val residentName by viewModel.residentName.collectAsState()
     val residentUnit by viewModel.residentUnit.collectAsState()
+    val profilePicPath by viewModel.residentProfilePicPath.collectAsState()
     val bookings by viewModel.bookings.collectAsState()
     val notices by viewModel.notices.collectAsState()
     val activityLogs by viewModel.activityLogs.collectAsState()
+
+    val avatarModel = androidx.compose.runtime.remember(profilePicPath) {
+        if (profilePicPath != null && java.io.File(profilePicPath!!).exists()) {
+            java.io.File(profilePicPath!!)
+        } else {
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuBtof968EME_AT3J1X04VqgMz2xHOsMs_XTnv7Hq48M1nhmsEnAlfrxdbMhFGS_QqNYoN91npY4DXsydgXk8XSuwnIjqwDH0Yro8mQzvzfgNF4_sGxmEKuf-gEgfG4vVJofi_j3eKwH36638MQYQU0xmwU_iN14Xge2TWjaipqNhw_Um7wHMLQrHfe-TzFEw4OfOMNOkSxwvs9_P3FX6sygdnomhDpSHUy7PK6zyHnZRZUu-qArPFWvSFuj5p-8GNEkYeU59Humrcw"
+        }
+    }
 
     val lifestyleItems = listOf(
         LifestyleItem(
@@ -145,6 +154,24 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             color = VedvoraGold,
                             fontFamily = FontFamily.Serif
+                        )
+                    }
+
+                    // Resident Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, VedvoraGold, CircleShape)
+                            .clickable { viewModel.isProfilePhotoPickerOpen.value = true }
+                            .testTag("home_avatar_click"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = avatarModel,
+                            contentDescription = residentName,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }
