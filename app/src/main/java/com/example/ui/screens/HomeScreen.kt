@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Badge
@@ -44,6 +49,7 @@ import androidx.compose.material.icons.filled.RoomService
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SupervisedUserCircle
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -119,6 +125,8 @@ fun HomeScreen(
             imageUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuBXrS6vQ1r9NXYKMaKHJCSfG93LapUCpzIpWQ-mixOEQ20CDuqD_NN4e1w5XWuMCloMsK5QyX_WipOKgYLbuhDYLJVjzCeP0JtmuTeweESFJZlrbqyU2n9aJHm58WxIO0YB8sORxEVNBeM_XTjznvTkwzgeF8BssqCZ1ur1502D5A2fzvipFGb5ytyNRwOpjOxWgiMDcyh65XOxR0HFglUlTTVPdJTC-yF5Jo2gZTlfOJqs6oHOYxz6M-fOnsxbBPtUYK0d9lOfBVk"
         )
     )
+
+    var selectedNoticeFilter by remember { mutableStateOf("All") }
 
     Box(
         modifier = Modifier
@@ -611,60 +619,189 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Official Notices Card
+            // Digital Notice Board Card
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("digital_notice_board_card")
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(VedvoraGold.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Campaign, contentDescription = null, tint = VedvoraGold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(VedvoraGold.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Campaign, contentDescription = null, tint = VedvoraGold)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Digital Notice Board", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                Text("Management Updates • Events • Alerts", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Official Notices", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+
+                        Button(
+                            onClick = { viewModel.isPostNoticeDialogOpen.value = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.testTag("open_post_notice_dialog_btn")
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = VedvoraPrimary, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("POST", color = VedvoraPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    notices.forEach { notice ->
+                    // Notice Filter Chips
+                    val noticeFilterOptions = listOf("All", "Updates", "Events", "Emergency")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        noticeFilterOptions.forEach { option ->
+                            val isSelected = (selectedNoticeFilter == option)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) VedvoraGold else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { selectedNoticeFilter = option }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = option,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) VedvoraPrimary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    val filteredNotices = notices.filter { notice ->
+                        when (selectedNoticeFilter) {
+                            "Emergency" -> notice.isUrgent
+                            "Events" -> notice.title.contains("Gala", ignoreCase = true) || notice.title.contains("Event", ignoreCase = true) || notice.subtitle.contains("RSVP", ignoreCase = true)
+                            "Updates" -> !notice.isUrgent && !notice.title.contains("Gala", ignoreCase = true)
+                            else -> true
+                        }
+                    }
+
+                    if (filteredNotices.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp)
-                                .clip(RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
-                                .background(if (notice.isUrgent) VedvoraGold.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant)
-                                .border(
-                                    width = 3.dp,
-                                    color = if (notice.isUrgent) VedvoraGold else MaterialTheme.colorScheme.outlineVariant,
-                                    shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp)
-                                )
-                                .padding(12.dp)
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(notice.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
-                                    if (notice.isUrgent) {
+                            Text("No notices posted in this category.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        filteredNotices.forEach { notice ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 10.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(if (notice.isUrgent) Color(0xFFFEF2F2) else MaterialTheme.colorScheme.surfaceVariant)
+                                    .border(
+                                        width = 1.5.dp,
+                                        color = if (notice.isUrgent) Color(0xFFEF4444) else VedvoraGold.copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(14.dp)
+                                    )
+                                    .padding(14.dp)
+                            ) {
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            if (notice.isUrgent) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFFEF4444))
+                                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(10.dp))
+                                                        Spacer(modifier = Modifier.width(3.dp))
+                                                        Text("URGENT ALERT", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                            }
+
+                                            Text(
+                                                text = notice.title,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = if (notice.isUrgent) Color(0xFF991B1B) else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+
+                                        if (notice.isUrgent) {
+                                            Button(
+                                                onClick = { viewModel.rsvpToGala() },
+                                                colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.height(28.dp)
+                                            ) {
+                                                Text("RSVP", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VedvoraPrimary)
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    Text(
+                                        text = notice.subtitle,
+                                        fontSize = 12.sp,
+                                        color = if (notice.isUrgent) Color(0xFF7F1D1D) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                         Text(
-                                            text = "RSVP NOW",
+                                            text = "Posted by Estate Management • Today",
                                             fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+
+                                        Text(
+                                            text = "Acknowledge ✓",
+                                            fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = VedvoraGold,
-                                            modifier = Modifier.clickable { viewModel.rsvpToGala() }
+                                            modifier = Modifier.clickable {
+                                                viewModel.showToast("Notice '${notice.title}' Acknowledged")
+                                            }
                                         )
                                     }
                                 }
-                                Text(notice.subtitle, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

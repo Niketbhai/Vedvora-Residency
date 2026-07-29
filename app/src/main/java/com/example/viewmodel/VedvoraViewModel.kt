@@ -43,6 +43,7 @@ class VedvoraViewModel(application: Application) : AndroidViewModel(application)
     val isLoginDialogOpen = MutableStateFlow(false)
     val isProfilePhotoPickerOpen = MutableStateFlow(false)
     val isDigitalIdCardOpen = MutableStateFlow(false)
+    val isPostNoticeDialogOpen = MutableStateFlow(false)
 
     // User session
     val residentName = MutableStateFlow("Arjun Sharma")
@@ -379,6 +380,19 @@ class VedvoraViewModel(application: Application) : AndroidViewModel(application)
 
     fun rsvpToGala() {
         showToast("RSVP Confirmed for Annual Resident Gala!")
+    }
+
+    fun postNotice(title: String, subtitle: String, category: String, isUrgent: Boolean) {
+        viewModelScope.launch {
+            repository.postNotice(title, subtitle, category, isUrgent)
+            NotificationHelper.showServiceStatusNotification(
+                context = getApplication(),
+                serviceName = "NOTICE: $title",
+                newStatus = if (isUrgent) "EMERGENCY BROADCAST" else category,
+                additionalDetails = subtitle
+            )
+            showToast("Digital Notice Posted & Broadcasted to Residents!")
+        }
     }
 
     fun showToast(msg: String) {

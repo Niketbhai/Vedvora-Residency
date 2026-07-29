@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.Badge
@@ -326,21 +330,23 @@ fun DigitalResidencyCardDialog(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Simulated Visual Barcode / QR display
+                            // Realistic Security QR Code display
                             Box(
                                 modifier = Modifier
-                                    .size(140.dp)
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .size(150.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                                     .background(Color.White)
-                                    .padding(8.dp),
+                                    .padding(10.dp)
+                                    .testTag("security_qr_code_canvas"),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    imageVector = Icons.Default.QrCode2,
-                                    contentDescription = "Access QR Code",
+                                SecurityQrCodeCanvas(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .alpha(alphaAnim)
+                                        .alpha(alphaAnim),
+                                    codeString = resIdCode,
+                                    qrColor = VedvoraPrimary,
+                                    accentColor = VedvoraGold
                                 )
 
                                 if (isScanned) {
@@ -351,9 +357,9 @@ fun DigitalResidencyCardDialog(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text("VERIFIED!", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Text("VERIFIED!", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                         }
                                     }
                                 }
@@ -415,5 +421,105 @@ fun DigitalResidencyCardDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun SecurityQrCodeCanvas(
+    modifier: Modifier = Modifier,
+    codeString: String = "VEDV-RES-8809-2026",
+    qrColor: Color = VedvoraPrimary,
+    accentColor: Color = VedvoraGold
+) {
+    Canvas(modifier = modifier) {
+        val width = size.width
+        val height = size.height
+        val gridSize = 21 // Standard QR Version 1 matrix (21x21 modules)
+        val moduleW = width / gridSize
+        val moduleH = height / gridSize
+
+        // White background
+        drawRect(color = Color.White)
+
+        fun drawMod(x: Int, y: Int, color: Color = qrColor) {
+            drawRect(
+                color = color,
+                topLeft = Offset(x * moduleW, y * moduleH),
+                size = Size(moduleW, moduleH)
+            )
+        }
+
+        // Standard 7x7 Finder pattern at (startX, startY)
+        fun drawFinder(startX: Int, startY: Int) {
+            for (r in 0 until 7) {
+                for (c in 0 until 7) {
+                    val isOuter = r == 0 || r == 6 || c == 0 || c == 6
+                    val isInnerBox = r in 2..4 && c in 2..4
+                    if (isOuter || isInnerBox) {
+                        drawMod(startX + c, startY + r, qrColor)
+                    }
+                }
+            }
+        }
+
+        // Draw 3 Finder Patterns
+        drawFinder(0, 0)                  // Top-Left
+        drawFinder(gridSize - 7, 0)       // Top-Right
+        drawFinder(0, gridSize - 7)       // Bottom-Left
+
+        // Timing patterns
+        for (i in 7 until gridSize - 7) {
+            if (i % 2 == 0) {
+                drawMod(i, 6, qrColor)
+                drawMod(6, i, qrColor)
+            }
+        }
+
+        // Alignment Pattern at (14, 14)
+        val alignX = 14
+        val alignY = 14
+        for (r in -2..2) {
+            for (c in -2..2) {
+                if (r == -2 || r == 2 || c == -2 || c == 2 || (r == 0 && c == 0)) {
+                    drawMod(alignX + c, alignY + r, accentColor)
+                }
+            }
+        }
+
+        // Hash-based matrix data pattern
+        val seed = codeString.hashCode()
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
+                val inTopLeftFinder = r < 8 && c < 8
+                val inTopRightFinder = r < 8 && c >= gridSize - 8
+                val inBottomLeftFinder = r >= gridSize - 8 && c < 8
+                val inAlignPattern = (r in (alignY - 2)..(alignY + 2)) && (c in (alignX - 2)..(alignX + 2))
+                val inCenterLogo = (r in 9..11) && (c in 9..11)
+
+                if (!inTopLeftFinder && !inTopRightFinder && !inBottomLeftFinder && !inAlignPattern && !inCenterLogo) {
+                    val valBit = ((seed xor (r * 37 + c * 19 + r * c)) and 0x1) == 1
+                    if (valBit) {
+                        val color = if ((r + c) % 5 == 0) accentColor else qrColor
+                        drawMod(c, r, color)
+                    }
+                }
+            }
+        }
+
+        // Center Emblem/Logo Box
+        val cStart = 9 * moduleW
+        val cSize = 3 * moduleW
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(cStart - moduleW * 0.3f, cStart - moduleH * 0.3f),
+            size = Size(cSize + moduleW * 0.6f, cSize + moduleH * 0.6f),
+            cornerRadius = CornerRadius(moduleW, moduleH)
+        )
+        drawRoundRect(
+            color = accentColor,
+            topLeft = Offset(cStart, cStart),
+            size = Size(cSize, cSize),
+            cornerRadius = CornerRadius(moduleW * 0.6f, moduleH * 0.6f)
+        )
     }
 }

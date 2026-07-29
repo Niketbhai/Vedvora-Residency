@@ -21,6 +21,7 @@ import com.example.ui.components.CrisisAlertDialog
 import com.example.ui.components.DigitalResidencyCardDialog
 import com.example.ui.components.GatePassDialog
 import com.example.ui.components.PaymentDialog
+import com.example.ui.components.PostNoticeDialog
 import com.example.ui.components.PreAuthorizeVisitorDialog
 import com.example.ui.components.ProfilePhotoPickerDialog
 import com.example.ui.components.SubmitLifestyleRequestDialog
@@ -47,6 +48,7 @@ fun MainScreen(
     val isSubmitLifestyleRequestOpen by viewModel.isSubmitLifestyleRequestOpen.collectAsState()
     val isProfilePhotoPickerOpen by viewModel.isProfilePhotoPickerOpen.collectAsState()
     val isDigitalIdCardOpen by viewModel.isDigitalIdCardOpen.collectAsState()
+    val isPostNoticeDialogOpen by viewModel.isPostNoticeDialogOpen.collectAsState()
     val residentProfilePicPath by viewModel.residentProfilePicPath.collectAsState()
     val residentUnit by viewModel.residentUnit.collectAsState()
 
@@ -194,6 +196,13 @@ fun MainScreen(
             DigitalResidencyCardDialog(
                 viewModel = viewModel,
                 onDismiss = { viewModel.isDigitalIdCardOpen.value = false }
+            )
+        }
+
+        if (isPostNoticeDialogOpen) {
+            PostNoticeDialog(
+                viewModel = viewModel,
+                onDismiss = { viewModel.isPostNoticeDialogOpen.value = false }
             )
         }
     }

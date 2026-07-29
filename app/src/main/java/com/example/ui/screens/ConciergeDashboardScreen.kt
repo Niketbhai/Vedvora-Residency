@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -158,25 +159,48 @@ fun ConciergeDashboardScreen(
                     )
                 }
 
-                Button(
-                    onClick = { viewModel.isSubmitLifestyleRequestOpen.value = true },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = VedvoraPrimaryContainer),
-                    modifier = Modifier.testTag("submit_new_request_top_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add",
-                        tint = VedvoraGold,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "NEW REQUEST",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = VedvoraGold
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { viewModel.isPostNoticeDialogOpen.value = true },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold),
+                        modifier = Modifier.testTag("concierge_post_notice_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Campaign,
+                            contentDescription = "Notice",
+                            tint = VedvoraPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "NOTICE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VedvoraPrimary
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.isSubmitLifestyleRequestOpen.value = true },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VedvoraPrimaryContainer),
+                        modifier = Modifier.testTag("submit_new_request_top_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add",
+                            tint = VedvoraGold,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "NEW REQUEST",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VedvoraGold
+                        )
+                    }
                 }
             }
 

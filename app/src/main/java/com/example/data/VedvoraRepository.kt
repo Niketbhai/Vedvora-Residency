@@ -373,4 +373,23 @@ class VedvoraRepository(private val dao: VedvoraDao) {
             )
         )
     }
+
+    suspend fun postNotice(title: String, subtitle: String, category: String, isUrgent: Boolean) {
+        dao.insertNotice(
+            NoticeEntity(
+                title = title,
+                subtitle = subtitle,
+                isUrgent = isUrgent,
+                isCompleted = false
+            )
+        )
+        dao.insertActivityLog(
+            ActivityLogEntity(
+                title = "Digital Notice Broadcasted",
+                referenceCode = "[$category] $title",
+                timeAgoStr = "Just Now",
+                iconType = "service"
+            )
+        )
+    }
 }
