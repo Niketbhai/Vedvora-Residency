@@ -21,25 +21,32 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Deck
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RoomService
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -47,7 +54,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.example.util.PdfGenerator
+import com.example.util.NotificationHelper
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -596,6 +610,53 @@ fun PaymentDialog(
     onDismiss: () -> Unit,
     onConfirmPayment: () -> Unit
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var paymentState by remember { mutableStateOf("SELECT") } // "SELECT", "PROCESSING", "SUCCESS"
+    var selectedMethod by remember { mutableStateOf("UPI_GPAY") } // "UPI_GPAY", "UPI_PHONEPE", "CARD"
+    var upiIdInput by remember { mutableStateOf("arjun@okaxis") }
+
+    val formattedAmount = String.format("%,.2f", amount)
+    val transactionRefId = remember { "UPI/2026/0729/${(100000..999999).random()}" }
+
+    val handleDownloadPdf = {
+        val methodLabel = when (selectedMethod) {
+            "UPI_GPAY" -> "Google Pay UPI"
+            "UPI_PHONEPE" -> "PhonePe UPI"
+            else -> "Concierge Platinum Card"
+        }
+        val file = PdfGenerator.generateAndSavePaymentReceiptPdf(
+            context = context,
+            amountPaid = amount,
+            transactionId = transactionRefId,
+            paymentMode = methodLabel
+        )
+        if (file != null && file.exists()) {
+            Toast.makeText(context, "📄 Payment Receipt PDF saved to Downloads!\nPath: ${file.name}", Toast.LENGTH_LONG).show()
+            NotificationHelper.showServiceStatusNotification(
+                context = context,
+                serviceName = "Payment Receipt PDF",
+                newStatus = "completed",
+                additionalDetails = "Saved ${file.name} to Downloads folder"
+            )
+
+            try {
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/pdf"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(intent, "Share Payment Receipt PDF"))
+            } catch (e: Exception) {
+                // Fallback share chooser
+            }
+        } else {
+            Toast.makeText(context, "Payment Receipt generated for ₹$formattedAmount", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
@@ -610,92 +671,364 @@ fun PaymentDialog(
             Column(
                 modifier = Modifier
                     .padding(24.dp)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "RESIDENTIAL DUES PAYMENT",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = VedvoraGold,
-                        letterSpacing = 1.2.sp
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(20.dp)
-                ) {
-                    Column {
-                        Text("Total Amount Due", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                if (paymentState == "SELECT") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "₹${String.format("%,.2f", amount)}",
-                            color = Color.White,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "RESIDENTIAL DUES PAYMENT",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VedvoraGold,
+                            letterSpacing = 1.2.sp
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Luxury Amenities & HOA", color = VedvoraGold, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Due in 3 days", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                Text("Select Payment Method", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(20.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CreditCard, contentDescription = null, tint = VedvoraGold)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Concierge Platinum Card", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
-                                Text("•••• •••• •••• 4242", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column {
+                            Text("Total Amount Due", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                            Text(
+                                text = "₹$formattedAmount",
+                                color = Color.White,
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Luxury Amenities & HOA", color = VedvoraGold, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Due in 3 days", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
                             }
                         }
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = VedvoraGold)
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = onConfirmPayment,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold)
-                ) {
-                    Text("Confirm & Pay \$${String.format("%.2f", amount)}", fontWeight = FontWeight.Bold, color = VedvoraPrimary)
+                    Text(
+                        text = "Select Payment Method",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // UPI Option 1: Google Pay
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedMethod == "UPI_GPAY") VedvoraGold.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedMethod = "UPI_GPAY" }
+                            .border(
+                                width = if (selectedMethod == "UPI_GPAY") 1.5.dp else 0.dp,
+                                color = VedvoraGold,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = (selectedMethod == "UPI_GPAY"),
+                                    onClick = { selectedMethod = "UPI_GPAY" },
+                                    colors = RadioButtonDefaults.colors(selectedColor = VedvoraGold)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Google Pay UPI", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Instant UPI transfer • arjun@okaxis", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = VedvoraGold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // UPI Option 2: PhonePe / Paytm
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedMethod == "UPI_PHONEPE") VedvoraGold.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedMethod = "UPI_PHONEPE" }
+                            .border(
+                                width = if (selectedMethod == "UPI_PHONEPE") 1.5.dp else 0.dp,
+                                color = VedvoraGold,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = (selectedMethod == "UPI_PHONEPE"),
+                                    onClick = { selectedMethod = "UPI_PHONEPE" },
+                                    colors = RadioButtonDefaults.colors(selectedColor = VedvoraGold)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("PhonePe / Paytm UPI", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Fast UPI pay • arjun@ybl", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Icon(Icons.Default.QrCode2, contentDescription = null, tint = VedvoraGold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Option 3: Concierge Card
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedMethod == "CARD") VedvoraGold.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedMethod = "CARD" }
+                            .border(
+                                width = if (selectedMethod == "CARD") 1.5.dp else 0.dp,
+                                color = VedvoraGold,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = (selectedMethod == "CARD"),
+                                    onClick = { selectedMethod = "CARD" },
+                                    colors = RadioButtonDefaults.colors(selectedColor = VedvoraGold)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Concierge Platinum Card", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("•••• •••• •••• 4242", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Icon(Icons.Default.CreditCard, contentDescription = null, tint = VedvoraGold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = {
+                            paymentState = "PROCESSING"
+                            coroutineScope.launch {
+                                delay(1400)
+                                paymentState = "SUCCESS"
+                                onConfirmPayment()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .testTag("pay_now_confirm_btn"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold)
+                    ) {
+                        Text("PAY NOW  ₹$formattedAmount", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = VedvoraPrimary)
+                    }
+
+                } else if (paymentState == "PROCESSING") {
+                    Spacer(modifier = Modifier.height(30.dp))
+                    CircularProgressIndicator(
+                        color = VedvoraGold,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(56.dp)
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = "Connecting to UPI Gateway...",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Authenticating ₹$formattedAmount transfer with bank",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                } else if (paymentState == "SUCCESS") {
+                    // UPI Successful Screen / Pop-up
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("upi_payment_success_view")
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981))
+                                .border(4.dp, Color(0xFFD1FAE5), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Success",
+                                tint = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "₹$formattedAmount",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = "UPI Payment Successful",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Transaction Details Card
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Paid To", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Vedvora Estates HOA Ltd", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("UPI Ref No", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(transactionRefId, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VedvoraGold)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Payment Method", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        when (selectedMethod) {
+                                            "UPI_GPAY" -> "Google Pay UPI"
+                                            "UPI_PHONEPE" -> "PhonePe UPI"
+                                            else -> "Platinum Card"
+                                        },
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Status", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("COMPLETED ✓", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Download PDF Receipt Button
+                        Button(
+                            onClick = { handleDownloadPdf() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("download_pdf_receipt_btn"),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                        ) {
+                            Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("DOWNLOAD RECEIPT (PDF)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    val shareText = "Vedvora Payment Receipt\nAmount: ₹$formattedAmount\nUPI Ref: $transactionRefId\nStatus: SUCCESSFUL"
+                                    val sendIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, "Share Receipt"))
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null, tint = VedvoraGold, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Share", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VedvoraGold)
+                            }
+
+                            Button(
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = VedvoraGold)
+                            ) {
+                                Text("DONE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VedvoraPrimary)
+                            }
+                        }
+                    }
                 }
             }
         }
